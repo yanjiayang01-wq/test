@@ -76,7 +76,7 @@
       <label>Project Website<input name="website" placeholder="https://..."></label>
       <label>Reaching Out Method<select name="method"></select></label>
       <label>Status<select name="status"></select></label>
-      <button class="primary" type="submit">Add</button>
+      <button class="primary" type="button" id="addBtn">Add</button>
     </form>
   </div>
 
@@ -139,8 +139,10 @@
   document.getElementById("fMethod").innerHTML += options(METHODS);
   document.getElementById("fStatus").innerHTML += options(STATUSES);
 
-  form.addEventListener("submit", e => {
-    e.preventDefault();
+  function addRow() {
+    if (!form.name.value.trim()) { form.name.focus(); form.name.style.borderColor = "var(--danger)"; return; }
+    if (!form.date.value) form.date.value = today();
+    form.name.style.borderColor = "";
     const d = Object.fromEntries(new FormData(form));
     rows.push({ id: uid(), ...d, name: d.name.trim(), website: d.website.trim() });
     save();
@@ -149,7 +151,10 @@
     form.method.value = "Email";
     form.status.value = "Sent";
     render();
-  });
+  }
+  document.getElementById("addBtn").addEventListener("click", addRow);
+  form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); addRow(); } });
+  form.addEventListener("submit", e => e.preventDefault());
 
   ["q", "fMethod", "fStatus"].forEach(id => document.getElementById(id).addEventListener("input", render));
 
