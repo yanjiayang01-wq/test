@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reaching Out Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #6b7280;
+    --border: #e3e6eb; --accent: #2f6fed; --accent-text: #ffffff; --danger: #d64545;
+    --row-hover: #f2f5fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b1f27; --text: #e6e8ec; --muted: #9aa1ad;
+      --border: #2c323d; --accent: #5b8cff; --accent-text: #0d1117; --danger: #ff6b6b;
+      --row-hover: #222833;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .stat .label { color: var(--muted); font-size: 12px; }
+  .stat .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  form.add { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 9px; width: 100%; }
+  button { font: inherit; cursor: pointer; border-radius: 6px; padding: 7px 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.link { border: none; background: none; padding: 2px 6px; color: var(--accent); }
+  button.link.danger { color: var(--danger); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .toolbar input[type=search] { flex: 1 1 220px; width: auto; }
+  .toolbar select { width: auto; }
+  .toolbar .spacer { flex: 1; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+  th.nosort { cursor: default; }
+  tbody tr:hover { background: var(--row-hover); }
+  td.date { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td a { color: var(--accent); text-decoration: none; word-break: break-all; }
+  td a:hover { text-decoration: underline; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
+    border: 1px solid var(--border); white-space: nowrap; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 10px; }
+  td input, td select { padding: 4px 6px; }
+  .actions { white-space: nowrap; text-align: right; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reaching Out Dashboard</h1>
+  <p class="sub">Track every project you've reached out to. Data is saved in this browser; use Export / Import CSV to back up or share.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Total projects</div><div class="value" id="sTotal">0</div></div>
+    <div class="stat"><div class="label">This week</div><div class="value" id="sWeek">0</div></div>
+    <div class="stat"><div class="label">Replied</div><div class="value" id="sReplied">0</div></div>
+    <div class="stat"><div class="label">Reply rate</div><div class="value" id="sRate">0%</div></div>
+  </div>
+
+  <div class="panel">
+    <form class="add" id="addForm">
+      <label>Project Name<input name="name" required placeholder="e.g. Acme Protocol"></label>
+      <label>Reaching Out Date<input name="date" type="date" required></label>
+      <label>Project Website<input name="website" placeholder="https://..."></label>
+      <label>Reaching Out Method<select name="method"></select></label>
+      <label>Status<select name="status"></select></label>
+      <button class="primary" type="submit">Add</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search project or website…">
+      <select id="fMethod"><option value="">All methods</option></select>
+      <select id="fStatus"><option value="">All statuses</option></select>
+      <span class="spacer"></span>
+      <button type="button" id="exportBtn">Export CSV</button>
+      <button type="button" id="importBtn">Import CSV</button>
+      <input type="file" id="importFile" accept=".csv,text/csv" hidden>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="name">Project Name</th>
+            <th data-key="date">Reaching Out Date</th>
+            <th data-key="website">Project Website</th>
+            <th data-key="method">Reaching Out Method</th>
+            <th data-key="status">Status</th>
+            <th class="nosort"></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const METHODS = ["Email", "Telegram", "X / Twitter", "LinkedIn", "Discord", "Website Form", "Other"];
+  const STATUSES = ["Sent", "Follow-up", "Replied", "In Talks", "Closed", "No Response"];
+  const KEY = "reaching-out-dashboard-v1";
+  const COLS = ["name", "date", "website", "method", "status"];
+  const HEADERS = ["Project Name", "Reaching Out Date", "Project Website", "Reaching Out Method", "Status"];
+
+  let rows = load();
+  let sort = { key: "date", dir: -1 };
+  let editingId = null;
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch {}
+  }
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const today = () => new Date().toISOString().slice(0, 10);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const href = u => !u ? "" : /^https?:\/\//i.test(u) ? u : "https://" + u;
+  const options = (list, sel) => list.map(v => `<option${v === sel ? " selected" : ""}>${esc(v)}</option>`).join("");
+
+  // populate selects
+  const form = document.getElementById("addForm");
+  form.method.innerHTML = options(METHODS, "Email");
+  form.status.innerHTML = options(STATUSES, "Sent");
+  form.date.value = today();
+  document.getElementById("fMethod").innerHTML += options(METHODS);
+  document.getElementById("fStatus").innerHTML += options(STATUSES);
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(form));
+    rows.push({ id: uid(), ...d, name: d.name.trim(), website: d.website.trim() });
+    save();
+    form.reset();
+    form.date.value = today();
+    form.method.value = "Email";
+    form.status.value = "Sent";
+    render();
+  });
+
+  ["q", "fMethod", "fStatus"].forEach(id => document.getElementById(id).addEventListener("input", render));
+
+  document.querySelectorAll("th[data-key]").forEach(th => th.addEventListener("click", () => {
+    const k = th.dataset.key;
+    sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
+    render();
+  }));
+
+  function view() {
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const fm = document.getElementById("fMethod").value;
+    const fs = document.getElementById("fStatus").value;
+    return rows
+      .filter(r => (!q || (r.name + " " + r.website).toLowerCase().includes(q))
+        && (!fm || r.method === fm) && (!fs || r.status === fs))
+      .sort((a, b) => String(a[sort.key] || "").localeCompare(String(b[sort.key] || "")) * sort.dir);
+  }
+
+  function render() {
+    const tbody = document.getElementById("rows");
+    const list = view();
+    document.querySelectorAll("th[data-key]").forEach(th => {
+      const base = th.textContent.replace(/ [▲▼]$/, "");
+      th.textContent = base + (th.dataset.key === sort.key ? (sort.dir > 0 ? " ▲" : " ▼") : "");
+    });
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">${rows.length ? "No matches." : "No outreach yet — add your first project above."}</td></tr>`;
+    } else {
+      tbody.innerHTML = list.map(r => r.id === editingId ? `
+        <tr data-id="${r.id}">
+          <td><input data-f="name" value="${esc(r.name)}"></td>
+          <td><input data-f="date" type="date" value="${esc(r.date)}"></td>
+          <td><input data-f="website" value="${esc(r.website)}"></td>
+          <td><select data-f="method">${options(METHODS, r.method)}</select></td>
+          <td><select data-f="status">${options(STATUSES, r.status)}</select></td>
+          <td class="actions"><button class="link" data-act="save">Save</button><button class="link" data-act="cancel">Cancel</button></td>
+        </tr>` : `
+        <tr data-id="${r.id}">
+          <td>${esc(r.name)}</td>
+          <td class="date">${esc(r.date)}</td>
+          <td>${r.website ? `<a href="${esc(href(r.website))}" target="_blank" rel="noopener">${esc(r.website)}</a>` : ""}</td>
+          <td><span class="pill">${esc(r.method)}</span></td>
+          <td><span class="pill">${esc(r.status)}</span></td>
+          <td class="actions"><button class="link" data-act="edit">Edit</button><button class="link danger" data-act="del">Delete</button></td>
+        </tr>`).join("");
+    }
+    stats();
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const tr = btn.closest("tr");
+    const id = tr.dataset.id;
+    const act = btn.dataset.act;
+    if (act === "edit") editingId = id;
+    else if (act === "cancel") editingId = null;
+    else if (act === "del") {
+      const r = rows.find(x => x.id === id);
+      if (!confirm(`Delete "${r.name}"?`)) return;
+      rows = rows.filter(x => x.id !== id);
+      save();
+    } else if (act === "save") {
+      const r = rows.find(x => x.id === id);
+      tr.querySelectorAll("[data-f]").forEach(el => r[el.dataset.f] = el.value.trim());
+      editingId = null;
+      save();
+    }
+    render();
+  });
+
+  function stats() {
+    const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    const replied = rows.filter(r => ["Replied", "In Talks", "Closed"].includes(r.status)).length;
+    document.getElementById("sTotal").textContent = rows.length;
+    document.getElementById("sWeek").textContent = rows.filter(r => r.date >= weekAgo).length;
+    document.getElementById("sReplied").textContent = replied;
+    document.getElementById("sRate").textContent = rows.length ? Math.round(replied / rows.length * 100) + "%" : "0%";
+  }
+
+  // CSV export / import
+  const csvCell = v => /[",\n]/.test(v ?? "") ? `"${String(v).replace(/"/g, '""')}"` : (v ?? "");
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const csv = [HEADERS.join(","), ...rows.map(r => COLS.map(c => csvCell(r[c])).join(","))].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `reaching-out-${today()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  function parseCSV(text) {
+    const out = []; let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (c === '"') q = false;
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); out.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); out.push(row); }
+    return out.filter(r => r.some(x => x.trim()));
+  }
+
+  const importFile = document.getElementById("importFile");
+  document.getElementById("importBtn").addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", async () => {
+    const f = importFile.files[0];
+    if (!f) return;
+    const data = parseCSV((await f.text()).replace(/^﻿/, ""));
+    const body = data.length && data[0][0].trim().toLowerCase() === "project name" ? data.slice(1) : data;
+    body.forEach(r => rows.push({ id: uid(), ...Object.fromEntries(COLS.map((c, i) => [c, (r[i] || "").trim()])) }));
+    save();
+    importFile.value = "";
+    render();
+    alert(`Imported ${body.length} row(s).`);
+  });
+
+  render();
+</script>
+</body>
+</html>
