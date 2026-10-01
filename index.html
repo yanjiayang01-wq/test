@@ -1,95 +1,136 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reaching Out Dashboard</title>
+<title>Reaching Out Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
+  /* Layout: one working column — summary strip, add bar, then the outreach log table. */
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #6b7280;
-    --border: #e3e6eb; --accent: #2f6fed; --accent-text: #ffffff; --danger: #d64545;
-    --row-hover: #f2f5fb;
+    --bg: #f5f6f4; --panel: #ffffff; --fg: #1b2420; --muted: #66716b; --line: #e1e5e1;
+    --accent: #1f6f5c; --accent-fg: #ffffff; --accent-soft: #e3f0ec; --hover: #f0f3f1;
+    --ok: #1d7a46; --ok-bg: #e2f3e8; --warn: #9a5b00; --warn-bg: #fcefd8;
+    --bad: #b33a3a; --bad-bg: #f8e3e3; --info: #2e5ea8; --info-bg: #e3ebf8; --neutral-bg: #eceeec;
+    --f-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12151b; --panel: #1b1f27; --text: #e6e8ec; --muted: #9aa1ad;
-      --border: #2c323d; --accent: #5b8cff; --accent-text: #0d1117; --danger: #ff6b6b;
-      --row-hover: #222833;
+    :root:not([data-theme="light"]) {
+      --bg: #111614; --panel: #18201d; --fg: #e4ebe7; --muted: #94a19a; --line: #29332f;
+      --accent: #5cc3a5; --accent-fg: #0b1512; --accent-soft: #1d3029; --hover: #1e2824;
+      --ok: #6fd39b; --ok-bg: #173325; --warn: #f0b45a; --warn-bg: #3a2c14;
+      --bad: #f08a8a; --bad-bg: #3a1d1d; --info: #8fb3f0; --info-bg: #1b2840; --neutral-bg: #252e2a;
+      color-scheme: dark;
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #111614; --panel: #18201d; --fg: #e4ebe7; --muted: #94a19a; --line: #29332f;
+    --accent: #5cc3a5; --accent-fg: #0b1512; --accent-soft: #1d3029; --hover: #1e2824;
+    --ok: #6fd39b; --ok-bg: #173325; --warn: #f0b45a; --warn-bg: #3a2c14;
+    --bad: #f08a8a; --bad-bg: #3a1d1d; --info: #8fb3f0; --info-bg: #1b2840; --neutral-bg: #252e2a;
+    color-scheme: dark;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-  .stat .label { color: var(--muted); font-size: 12px; }
-  .stat .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-  form.add { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; }
-  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
-  input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 7px 9px; width: 100%; }
-  button { font: inherit; cursor: pointer; border-radius: 6px; padding: 7px 14px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 56px; display: grid; gap: 18px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+  .sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .sync.live::before { background: var(--ok); }
+  .sync.local::before { background: var(--warn); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line);
+    border-radius: 10px; background: var(--panel); overflow: hidden; }
+  .stat { padding: 12px 16px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: none; }
+  .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat.attn .value { color: var(--warn); }
+
+  form.add { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr 1fr 1fr auto; gap: 10px; align-items: end;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  @media (max-width: 860px) { form.add { grid-template-columns: 1fr 1fr; } form.add button { grid-column: 1 / -1; } }
+  @media (max-width: 460px) { form.add { grid-template-columns: 1fr; } }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+  input, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 9px; width: 100%; min-width: 0; }
+  input.invalid { border-color: var(--bad); }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; cursor: pointer; border-radius: 6px; padding: 7px 14px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--fg); }
+  button:hover { background: var(--hover); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  button.primary:hover { filter: brightness(1.08); background: var(--accent); }
   button.link { border: none; background: none; padding: 2px 6px; color: var(--accent); }
-  button.link.danger { color: var(--danger); }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  button.link.danger { color: var(--bad); }
+  button.link.confirm { color: var(--accent-fg); background: var(--bad); border-radius: 4px; }
+
+  .log { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .toolbar input[type=search] { flex: 1 1 220px; width: auto; }
-  .toolbar select { width: auto; }
+  .toolbar select { width: auto; flex: 0 1 auto; }
   .toolbar .spacer { flex: 1; }
+  .msg { font-size: 12px; color: var(--muted); min-height: 1em; }
   .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 720px; }
-  th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  th { font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600;
+    cursor: pointer; user-select: none; white-space: nowrap; }
   th.nosort { cursor: default; }
-  tbody tr:hover { background: var(--row-hover); }
-  td.date { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td a { color: var(--accent); text-decoration: none; word-break: break-all; }
+  tbody tr:hover { background: var(--hover); }
+  td.name { font-weight: 600; }
+  td.date { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.date small { display: block; font-family: var(--f-body); font-size: 11px; color: var(--muted); }
+  td.date small.due { color: var(--warn); font-weight: 600; }
+  td a { color: var(--accent); text-decoration: none; font-family: var(--f-mono); font-size: 12.5px; word-break: break-all; }
   td a:hover { text-decoration: underline; }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
-    border: 1px solid var(--border); white-space: nowrap; }
-  .empty { text-align: center; color: var(--muted); padding: 32px 10px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap;
+    background: var(--neutral-bg); color: var(--fg); }
+  .pill.method { background: var(--accent-soft); color: var(--accent); }
+  .s-Sent { background: var(--info-bg); color: var(--info); }
+  .s-Follow-up { background: var(--warn-bg); color: var(--warn); }
+  .s-Replied, .s-In-Talks { background: var(--ok-bg); color: var(--ok); }
+  .s-Closed { background: var(--ok); color: var(--panel); }
+  .s-No-Response { background: var(--bad-bg); color: var(--bad); }
+  .empty { text-align: center; color: var(--muted); padding: 36px 10px; }
   td input, td select { padding: 4px 6px; }
   .actions { white-space: nowrap; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Reaching Out Dashboard</h1>
-  <p class="sub">Track every project you've reached out to. Data is saved in this browser; use Export / Import CSV to back up or share.</p>
 
-  <div class="stats">
-    <div class="stat"><div class="label">Total projects</div><div class="value" id="sTotal">0</div></div>
-    <div class="stat"><div class="label">This week</div><div class="value" id="sWeek">0</div></div>
+<div class="wrap">
+  <header>
+    <h1>Reaching Out Tracker</h1>
+    <span class="sync" id="sync">Connecting…</span>
+  </header>
+
+  <section class="stats" aria-label="Summary">
+    <div class="stat"><div class="label">Projects</div><div class="value" id="sTotal">0</div></div>
+    <div class="stat"><div class="label">Last 7 days</div><div class="value" id="sWeek">0</div></div>
     <div class="stat"><div class="label">Replied</div><div class="value" id="sReplied">0</div></div>
     <div class="stat"><div class="label">Reply rate</div><div class="value" id="sRate">0%</div></div>
-  </div>
+    <div class="stat attn"><div class="label">Follow-up due</div><div class="value" id="sDue">0</div></div>
+  </section>
 
-  <div class="panel">
-    <form class="add" id="addForm">
-      <label>Project Name<input name="name" required placeholder="e.g. Acme Protocol"></label>
-      <label>Reaching Out Date<input name="date" type="date" required></label>
-      <label>Project Website<input name="website" placeholder="https://..."></label>
-      <label>Reaching Out Method<select name="method"></select></label>
-      <label>Status<select name="status"></select></label>
-      <button class="primary" type="button" id="addBtn">Add</button>
-    </form>
-  </div>
+  <form class="add" id="addForm" autocomplete="off">
+    <label>Project Name<input id="fName" name="name" placeholder="e.g. Acme Protocol"></label>
+    <label>Reaching Out Date<input id="fDate" name="date" type="date"></label>
+    <label>Project Website<input id="fSite" name="website" placeholder="acme.xyz"></label>
+    <label>Reaching Out Method<select id="fMethodNew" name="method"></select></label>
+    <label>Status<select id="fStatusNew" name="status"></select></label>
+    <button class="primary" type="button" id="addBtn">Add</button>
+  </form>
 
-  <div class="panel">
+  <section class="log">
     <div class="toolbar">
-      <input type="search" id="q" placeholder="Search project or website…">
-      <select id="fMethod"><option value="">All methods</option></select>
-      <select id="fStatus"><option value="">All statuses</option></select>
+      <input type="search" id="q" placeholder="Search project or website">
+      <select id="fMethod" aria-label="Filter by method"><option value="">All methods</option></select>
+      <select id="fStatus" aria-label="Filter by status"><option value="">All statuses</option></select>
       <span class="spacer"></span>
       <button type="button" id="exportBtn">Export CSV</button>
       <button type="button" id="importBtn">Import CSV</button>
       <input type="file" id="importFile" accept=".csv,text/csv" hidden>
     </div>
+    <div class="msg" id="msg" role="status"></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -99,152 +140,220 @@
             <th data-key="website">Project Website</th>
             <th data-key="method">Reaching Out Method</th>
             <th data-key="status">Status</th>
-            <th class="nosort"></th>
+            <th class="nosort"><span hidden>Actions</span></th>
           </tr>
         </thead>
-        <tbody id="rows"></tbody>
+        <tbody id="rows">
+          <tr><td colspan="6" class="empty">Loading your outreach log…</td></tr>
+        </tbody>
       </table>
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
   const METHODS = ["Email", "Telegram", "X / Twitter", "LinkedIn", "Discord", "Website Form", "Other"];
   const STATUSES = ["Sent", "Follow-up", "Replied", "In Talks", "Closed", "No Response"];
-  const KEY = "reaching-out-dashboard-v1";
   const COLS = ["name", "date", "website", "method", "status"];
   const HEADERS = ["Project Name", "Reaching Out Date", "Project Website", "Reaching Out Method", "Status"];
+  const LOCAL_KEY = "reaching-out-dashboard-v1";
+  const FOLLOW_UP_DAYS = 7;
 
-  let rows = load();
-  let sort = { key: "date", dir: -1 };
-  let editingId = null;
-
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch {}
-  }
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const today = () => new Date().toISOString().slice(0, 10);
+  const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const href = u => !u ? "" : /^https?:\/\//i.test(u) ? u : "https://" + u;
+  const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const daysSince = iso => iso ? Math.floor((Date.parse(today()) - Date.parse(iso)) / 864e5) : null;
   const options = (list, sel) => list.map(v => `<option${v === sel ? " selected" : ""}>${esc(v)}</option>`).join("");
+  const slug = s => String(s).replace(/[^A-Za-z]+/g, "-");
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const clean = r => Object.fromEntries(COLS.map(c => [c, String(r[c] ?? "").trim()]));
 
-  // populate selects
-  const form = document.getElementById("addForm");
-  form.method.innerHTML = options(METHODS, "Email");
-  form.status.innerHTML = options(STATUSES, "Sent");
-  form.date.value = today();
-  document.getElementById("fMethod").innerHTML += options(METHODS);
-  document.getElementById("fStatus").innerHTML += options(STATUSES);
+  let rows = [];
+  let sort = { key: "date", dir: -1 };
+  let editingId = null, confirmId = null;
+  let store = null;
 
-  function addRow() {
-    if (!form.name.value.trim()) { form.name.focus(); form.name.style.borderColor = "var(--danger)"; return; }
-    if (!form.date.value) form.date.value = today();
-    form.name.style.borderColor = "";
-    const d = Object.fromEntries(new FormData(form));
-    rows.push({ id: uid(), ...d, name: d.name.trim(), website: d.website.trim() });
-    save();
-    form.reset();
-    form.date.value = today();
-    form.method.value = "Email";
-    form.status.value = "Sent";
-    render();
+  function say(text) { $("msg").textContent = text || ""; }
+
+  // ---------- storage: shared db when hosted, browser storage otherwise ----------
+  function localStore() {
+    let mem = [];
+    try { mem = JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch {}
+    const read = () => mem;
+    const write = list => { mem = list; try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch {} };
+    let cb = () => {};
+    const emit = () => cb(read());
+    return {
+      mode: "local",
+      subscribe(fn) { cb = fn; emit(); },
+      async add(r) { write([...read(), { id: uid(), ...r }]); emit(); },
+      async addMany(list) { write([...read(), ...list.map(r => ({ id: uid(), ...r }))]); emit(); },
+      async update(id, r) { write(read().map(x => x.id === id ? { ...x, ...r } : x)); emit(); },
+      async remove(id) { write(read().filter(x => x.id !== id)); emit(); },
+    };
   }
-  document.getElementById("addBtn").addEventListener("click", addRow);
-  form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); addRow(); } });
-  form.addEventListener("submit", e => e.preventDefault());
 
-  ["q", "fMethod", "fStatus"].forEach(id => document.getElementById(id).addEventListener("input", render));
+  function dbStore(db) {
+    const col = db.collection("outreach");
+    return {
+      mode: "live",
+      subscribe(fn) {
+        col.onSnapshot(
+          snap => fn(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+          () => { setSync("Connection lost. Reload the page to reconnect.", ""); }
+        );
+      },
+      async add(r) { await col.add({ ...r, createdAt: Date.now() }); },
+      async addMany(list) { for (const r of list) await col.add({ ...r, createdAt: Date.now() }); },
+      async update(id, r) { await col.doc(id).update(r); },
+      async remove(id) { await col.doc(id).delete(); },
+    };
+  }
 
+  function setSync(text, cls) { const el = $("sync"); el.textContent = text; el.className = "sync " + cls; }
+
+  async function guard(p) {
+    try { await p; return true; }
+    catch (e) {
+      const code = e && e.code;
+      say(code === "invalid_argument" ? "You have view-only access, so changes can't be saved."
+        : code === "quota_exceeded" ? "Storage is full. Delete some old rows, then try again."
+        : "Couldn't save that change. Check your connection and try again.");
+      return false;
+    }
+  }
+
+  // ---------- form ----------
+  $("fMethodNew").innerHTML = options(METHODS, "Email");
+  $("fStatusNew").innerHTML = options(STATUSES, "Sent");
+  $("fDate").value = today();
+  $("fMethod").innerHTML += options(METHODS);
+  $("fStatus").innerHTML += options(STATUSES);
+
+  async function addRow() {
+    if (!store) return;
+    const name = $("fName");
+    if (!name.value.trim()) { name.classList.add("invalid"); name.focus(); say("Enter a project name first."); return; }
+    name.classList.remove("invalid");
+    const r = clean({ name: name.value, date: $("fDate").value || today(), website: $("fSite").value,
+      method: $("fMethodNew").value, status: $("fStatusNew").value });
+    if (await guard(store.add(r))) {
+      name.value = ""; $("fSite").value = ""; $("fDate").value = today();
+      say(`Added ${r.name}.`);
+      name.focus();
+    }
+  }
+  $("addBtn").addEventListener("click", addRow);
+  $("addForm").addEventListener("submit", e => { e.preventDefault(); addRow(); });
+  $("addForm").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); addRow(); }
+  });
+
+  ["q", "fMethod", "fStatus"].forEach(id => $(id).addEventListener("input", render));
   document.querySelectorAll("th[data-key]").forEach(th => th.addEventListener("click", () => {
     const k = th.dataset.key;
-    sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
+    sort = { key: k, dir: sort.key === k ? -sort.dir : (k === "date" ? -1 : 1) };
     render();
   }));
 
+  // ---------- render ----------
+  const isDue = r => ["Sent", "Follow-up"].includes(r.status) && daysSince(r.date) >= FOLLOW_UP_DAYS;
+
   function view() {
-    const q = document.getElementById("q").value.trim().toLowerCase();
-    const fm = document.getElementById("fMethod").value;
-    const fs = document.getElementById("fStatus").value;
+    const q = $("q").value.trim().toLowerCase();
+    const fm = $("fMethod").value, fs = $("fStatus").value;
     return rows
-      .filter(r => (!q || (r.name + " " + r.website).toLowerCase().includes(q))
-        && (!fm || r.method === fm) && (!fs || r.status === fs))
+      .filter(r => (!q || `${r.name} ${r.website}`.toLowerCase().includes(q)) && (!fm || r.method === fm) && (!fs || r.status === fs))
       .sort((a, b) => String(a[sort.key] || "").localeCompare(String(b[sort.key] || "")) * sort.dir);
   }
 
+  function ago(r) {
+    const n = daysSince(r.date);
+    if (n === null || isNaN(n)) return "";
+    if (isDue(r)) return `<small class="due">${n}d ago · follow up</small>`;
+    return `<small>${n <= 0 ? "today" : n === 1 ? "yesterday" : n + "d ago"}</small>`;
+  }
+
   function render() {
-    const tbody = document.getElementById("rows");
-    const list = view();
     document.querySelectorAll("th[data-key]").forEach(th => {
       const base = th.textContent.replace(/ [▲▼]$/, "");
       th.textContent = base + (th.dataset.key === sort.key ? (sort.dir > 0 ? " ▲" : " ▼") : "");
     });
+    const list = view();
+    const tbody = $("rows");
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty">${rows.length ? "No matches." : "No outreach yet — add your first project above."}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">${rows.length ? "No projects match these filters."
+        : "No outreach logged yet. Add your first project above, or import a CSV."}</td></tr>`;
     } else {
       tbody.innerHTML = list.map(r => r.id === editingId ? `
-        <tr data-id="${r.id}">
-          <td><input data-f="name" value="${esc(r.name)}"></td>
-          <td><input data-f="date" type="date" value="${esc(r.date)}"></td>
-          <td><input data-f="website" value="${esc(r.website)}"></td>
-          <td><select data-f="method">${options(METHODS, r.method)}</select></td>
-          <td><select data-f="status">${options(STATUSES, r.status)}</select></td>
+        <tr data-id="${esc(r.id)}">
+          <td><input data-f="name" value="${esc(r.name)}" aria-label="Project name"></td>
+          <td><input data-f="date" type="date" value="${esc(r.date)}" aria-label="Reaching out date"></td>
+          <td><input data-f="website" value="${esc(r.website)}" aria-label="Project website"></td>
+          <td><select data-f="method" aria-label="Method">${options(METHODS, r.method)}</select></td>
+          <td><select data-f="status" aria-label="Status">${options(STATUSES, r.status)}</select></td>
           <td class="actions"><button class="link" data-act="save">Save</button><button class="link" data-act="cancel">Cancel</button></td>
         </tr>` : `
-        <tr data-id="${r.id}">
-          <td>${esc(r.name)}</td>
-          <td class="date">${esc(r.date)}</td>
-          <td>${r.website ? `<a href="${esc(href(r.website))}" target="_blank" rel="noopener">${esc(r.website)}</a>` : ""}</td>
-          <td><span class="pill">${esc(r.method)}</span></td>
-          <td><span class="pill">${esc(r.status)}</span></td>
-          <td class="actions"><button class="link" data-act="edit">Edit</button><button class="link danger" data-act="del">Delete</button></td>
+        <tr data-id="${esc(r.id)}">
+          <td class="name">${esc(r.name)}</td>
+          <td class="date">${esc(r.date)}${ago(r)}</td>
+          <td>${r.website ? `<a href="${esc(href(r.website))}" target="_blank" rel="noopener">${esc(r.website.replace(/^https?:\/\//i, ""))}</a>` : ""}</td>
+          <td><span class="pill method">${esc(r.method)}</span></td>
+          <td><span class="pill s-${slug(r.status)}">${esc(r.status)}</span></td>
+          <td class="actions">${r.id === confirmId
+            ? `<button class="link confirm" data-act="del-yes">Delete</button><button class="link" data-act="del-no">Keep</button>`
+            : `<button class="link" data-act="edit">Edit</button><button class="link danger" data-act="del">Delete</button>`}</td>
         </tr>`).join("");
     }
-    stats();
+    const replied = rows.filter(r => ["Replied", "In Talks", "Closed"].includes(r.status)).length;
+    $("sTotal").textContent = rows.length;
+    $("sWeek").textContent = rows.filter(r => { const n = daysSince(r.date); return n !== null && n >= 0 && n < 7; }).length;
+    $("sReplied").textContent = replied;
+    $("sRate").textContent = rows.length ? Math.round(replied / rows.length * 100) + "%" : "0%";
+    $("sDue").textContent = rows.filter(isDue).length;
   }
 
-  document.getElementById("rows").addEventListener("click", e => {
+  $("rows").addEventListener("click", async e => {
     const btn = e.target.closest("button[data-act]");
-    if (!btn) return;
+    if (!btn || !store) return;
     const tr = btn.closest("tr");
     const id = tr.dataset.id;
     const act = btn.dataset.act;
-    if (act === "edit") editingId = id;
+    if (act === "edit") { editingId = id; confirmId = null; }
     else if (act === "cancel") editingId = null;
-    else if (act === "del") {
+    else if (act === "del") confirmId = id;
+    else if (act === "del-no") confirmId = null;
+    else if (act === "del-yes") {
       const r = rows.find(x => x.id === id);
-      if (!confirm(`Delete "${r.name}"?`)) return;
-      rows = rows.filter(x => x.id !== id);
-      save();
+      confirmId = null;
+      if (await guard(store.remove(id))) say(`Deleted ${r ? r.name : "row"}.`);
     } else if (act === "save") {
-      const r = rows.find(x => x.id === id);
-      tr.querySelectorAll("[data-f]").forEach(el => r[el.dataset.f] = el.value.trim());
+      const patch = {};
+      tr.querySelectorAll("[data-f]").forEach(el => patch[el.dataset.f] = el.value.trim());
+      if (!patch.name) { say("Project name can't be empty."); return; }
       editingId = null;
-      save();
+      if (await guard(store.update(id, patch))) say(`Saved ${patch.name}.`);
     }
     render();
   });
 
-  function stats() {
-    const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-    const replied = rows.filter(r => ["Replied", "In Talks", "Closed"].includes(r.status)).length;
-    document.getElementById("sTotal").textContent = rows.length;
-    document.getElementById("sWeek").textContent = rows.filter(r => r.date >= weekAgo).length;
-    document.getElementById("sReplied").textContent = replied;
-    document.getElementById("sRate").textContent = rows.length ? Math.round(replied / rows.length * 100) + "%" : "0%";
-  }
-
-  // CSV export / import
+  // ---------- CSV ----------
   const csvCell = v => /[",\n]/.test(v ?? "") ? `"${String(v).replace(/"/g, '""')}"` : (v ?? "");
-  document.getElementById("exportBtn").addEventListener("click", () => {
-    const csv = [HEADERS.join(","), ...rows.map(r => COLS.map(c => csvCell(r[c])).join(","))].join("\n");
+  $("exportBtn").addEventListener("click", async () => {
+    const csv = "﻿" + [HEADERS.join(","), ...rows.map(r => COLS.map(c => csvCell(r[c])).join(","))].join("\n");
+    const filename = `reaching-out-${today()}.csv`;
+    const dl = window.claude ? await window.claude.use("downloads").catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename, data: new Blob([csv], { type: "text/csv;charset=utf-8" }) }); say(`Exported ${rows.length} rows.`); }
+      catch { say("Export was cancelled."); }
+      return;
+    }
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `reaching-out-${today()}.csv`;
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = filename;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
   function parseCSV(text) {
@@ -266,21 +375,30 @@
     return out.filter(r => r.some(x => x.trim()));
   }
 
-  const importFile = document.getElementById("importFile");
-  document.getElementById("importBtn").addEventListener("click", () => importFile.click());
-  importFile.addEventListener("change", async () => {
-    const f = importFile.files[0];
-    if (!f) return;
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async () => {
+    const f = $("importFile").files[0];
+    if (!f || !store) return;
     const data = parseCSV((await f.text()).replace(/^﻿/, ""));
     const body = data.length && data[0][0].trim().toLowerCase() === "project name" ? data.slice(1) : data;
-    body.forEach(r => rows.push({ id: uid(), ...Object.fromEntries(COLS.map((c, i) => [c, (r[i] || "").trim()])) }));
-    save();
-    importFile.value = "";
-    render();
-    alert(`Imported ${body.length} row(s).`);
+    const list = body.map(r => clean(Object.fromEntries(COLS.map((c, i) => [c, r[i]])))).filter(r => r.name);
+    $("importFile").value = "";
+    say(`Importing ${list.length} rows…`);
+    if (await guard(store.addMany(list))) say(`Imported ${list.length} rows.`);
   });
 
-  render();
+  // ---------- boot ----------
+  function start(s) {
+    store = s;
+    setSync(s.mode === "live" ? "Saved online · syncs across devices" : "Saved in this browser only", s.mode);
+    s.subscribe(list => { rows = list.map(r => ({ id: r.id, ...clean(r) })); render(); });
+  }
+
+  (async () => {
+    let db = null;
+    if (window.claude && window.claude.use) {
+      try { db = await window.claude.use("db"); } catch { db = null; }
+    }
+    start(db ? dbStore(db) : localStore());
+  })();
 </script>
-</body>
-</html>
